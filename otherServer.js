@@ -15,7 +15,12 @@ app.post('/route', (req, res) => {
     console.log('Got the routed data');
     console.log(data);
     console.log(`Routed data --- userId:${data.userId} name:${data.name}`);
-    res.send(`The other server got the routed data`);
+
+    // NOTE: the functions are not being passed through the HTTP request from the calling server
+    //console.log(`The value from getId function: ${data.containerObj.getIdFunc()}`);
+    //console.log(`The value from getName function: ${data.containerObj.getNameFunc()}`);
+
+    res.json( { msg: 'The other server got the routed data', containerObj: data.containerObj });
 }); 
 
 app.listen(PORT, () => {
