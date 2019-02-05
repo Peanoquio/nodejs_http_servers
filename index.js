@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
     res.send('Hello world!!!');
 });
 
-app.get('/route/userId/:userId/name/:name', (req, res) => {
+app.get('/route/userId/:userId/name/:name', async (req, res) => {
     const data = {};
     data.test = 'test';
 
@@ -54,10 +54,10 @@ app.get('/route/userId/:userId/name/:name', (req, res) => {
     // HTTP post request using callback
     postData(options, (err, resData) => {
         if (err) {
-            console.error('Got the error through callback');
+            console.error('===== Got the error through callback');
             console.error(err);
         } else {
-            console.log('Got the response data through callback');
+            console.log('===== Got the response data through callback');
             console.log(resData);
         }
     });
@@ -65,10 +65,10 @@ app.get('/route/userId/:userId/name/:name', (req, res) => {
     /////////////////////////////////////////////////
     // HTTP post request (using Promise)
     postDataPromise(options).then(resData => {
-        console.log('Got the response data from the promise');
+        console.log('===== Got the response data from the promise');
         console.log(resData);
     }).catch(err => {
-        console.error('Got the error from the promise');
+        console.error('===== Got the error from the promise');
         console.error(err);
     });
 
@@ -76,15 +76,20 @@ app.get('/route/userId/:userId/name/:name', (req, res) => {
     // async func
     try {
         // HTTP post request
-        const resData = postDataAsync(options);
-        console.log('Got the response data from the async function');
+        const resData = await postDataAsync(options);
+        console.log('===== Got the response data from the async function');
         console.log(resData);
     } catch (err) {
-        console.error('Got the error from the async function');
+        console.error('===== Got the error from the async function');
         console.error(err);
     }
 
-    res.end();
+    // to illustrate callback, promise and async approaches when making the HTTP call to the other server, 
+    // I purposefully did not use Promise.all to wait for all async process to complete before sending back the response
+    // instead, I opt to use a timeout (just as an example)
+    setTimeout(() => {
+        res.end();
+    }, 5000);
 });
 
 app.listen(PORT, () => {
@@ -115,9 +120,8 @@ const postDataPromise = (options = {}) => {
                 reject({ error: err.body });
             } else {
                 //let json = JSON.parse(body);
-                console.log(`Got the body from the other server: ${body}`);
-                console.log(`Response from the other server: ${res.body}`);
-                console.log(res.body);
+                //console.log(`Got the body from the other server: ${JSON.stringify(body)}`);
+                //console.log(`Response from the other server: ${JSON.stringify(res.body)}`);
                 resolve({ responseData: res.body });
             }
         });
@@ -137,9 +141,8 @@ const postData = (options = {}, callback = () => {}) => {
             callback(err);
         } else {
             //let json = JSON.parse(body);
-            console.log(`Got the body from the other server: ${body}`);
-            console.log(`Response from the other server: ${res.body}`);
-            console.log(res.body);
+            //console.log(`Got the body from the other server: ${JSON.stringify(body)}`);
+            //console.log(`Response from the other server: ${JSON.stringify(res.body)}`);
             callback(null, res.body);
         }
     });
