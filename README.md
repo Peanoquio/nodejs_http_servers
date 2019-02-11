@@ -10,7 +10,16 @@ To run a sample of how this works:
 ```
 http://localhost:3000/route/userId/123/name/guesswho
 ```
+* On the same server with port 3000, you can also call this endpoint. The other server (having port 3001)--after receiving the request--will do a redirect to itself with a new endpoint before sending back the response to the calling server. 
+Moreover, the HTTP connection for this will be persistent (with keep-alive and connection pooling).
+```
+http://localhost:3000/redirectRoute/userId/123/name/guesswho
+```
 * If you look at the console, you will see that the request is routed to the other server--which in turn also sends a response back to the calling server (that initially made the request)
+* As an alternative, you can also install `wrk` and make multiple requests to the server. This command line tool is useful for a more detailed benchmarking when making requests.
+```
+wrk -t1 -c1 -d1s http://localhost:3000/redirectRoute/userId/123/name/guesswho
+```
 
 ## Dependencies
 
