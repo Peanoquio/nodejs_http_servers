@@ -2,10 +2,15 @@ const express = require('express');
 const request = require('request');
 
 const Container = require('./containerClass');
+const serverCallUtil = require('./serverCallUtil');
 
 
 const app = express();
 const PORT = 3000;
+
+
+let msgId = 0;
+
 
 // middlewares to help process HTTP requests
 app.use(express.json());
@@ -28,7 +33,8 @@ app.get('/route/userId/:userId/name/:name', async (req, res) => {
         console.log('This is a func');
     }
     
-    let containerObj = new Container(data.userId, data.name);
+    ++msgId;
+    let containerObj = new Container(data.userId, data.name, msgId, `Message id: ${msgId}`);
     // store the member function to be passed as a parameter
     data.getIdFunc = containerObj.getId;
     data.getNameFunc = containerObj.getName;
@@ -38,21 +44,11 @@ app.get('/route/userId/:userId/name/:name', async (req, res) => {
     console.log(data);
 
     // options for the HTTP call to the other server
-    const options = {  
-        url: 'http://localhost:3001/route',
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Accept-Charset': 'utf-8'
-        },
-        //body: A Buffer, String, or Stream object (can be an object if json option is set to true)
-        json: true,
-        body: data
-    };
+    const url = 'http://localhost:3001/route';
 
     /////////////////////////////////////////////////
     // HTTP post request using callback
-    postData(options, (err, resData) => {
+    serverCallUtil.postData(url, data, (err, resData) => {
         if (err) {
             console.error('===== Got the error through callback');
             console.error(err);
@@ -64,7 +60,7 @@ app.get('/route/userId/:userId/name/:name', async (req, res) => {
 
     /////////////////////////////////////////////////
     // HTTP post request (using Promise)
-    postDataPromise(options).then(resData => {
+    serverCallUtil.postDataPromise(url, data).then(resData => {
         console.log('===== Got the response data from the promise');
         console.log(resData);
     }).catch(err => {
@@ -76,7 +72,7 @@ app.get('/route/userId/:userId/name/:name', async (req, res) => {
     // async func
     try {
         // HTTP post request
-        const resData = await postDataAsync(options);
+        const resData = await serverCallUtil.postDataAsync(url, data);
         console.log('===== Got the response data from the async function');
         console.log(resData);
     } catch (err) {
@@ -92,58 +88,46 @@ app.get('/route/userId/:userId/name/:name', async (req, res) => {
     }, 5000);
 });
 
+app.get('/redirectRoute/userId/:userId/name/:name', async (req, res) => {
+    const data = {};
+    data.test = 'test';
+
+    console.log('Got the request parameters from the user request');
+    // store the request parameters
+    data.userId = req.params.userId;
+    data.name = req.params.name;
+
+    // store the function
+    data.func = function() {
+        console.log('This is a func');
+    }
+    
+    ++msgId;
+    let containerObj = new Container(data.userId, data.name, msgId, `Message id: ${msgId}`);
+    // store the entire object
+    data.containerObj = containerObj;
+    
+    console.log(data);
+
+    // options for the HTTP call to the other server
+    const url = 'http://localhost:3001/redirect';
+
+    /////////////////////////////////////////////////
+    // HTTP post request using callback (perisistent connection)
+    serverCallUtil.postDataPersistentConn(url, data, (err, resData) => {
+        if (err) {
+            console.error('===== Got the error through callback');
+            console.error(err);
+        } else {
+            console.log('===== Got the response data through callback');
+            console.log(resData);
+        }
+
+        res.end();
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Listening on port: ${PORT}`);
 });
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * HTTP Post using async/await
- * @param {*} options 
- */
-const postDataAsync = async (options = {}) => {
-    return await postDataPromise(options);
-};
-
-/**
- * HTTP Post with Promise
- * @param {Object} options 
- */
-const postDataPromise = (options = {}) => {
-    return new Promise((resolve, reject) => {
-        // make another HTTP request
-        request.post(options, (err, res, body) => {
-            if (err) {
-                console.error(`Error encountered when calling the other server: ${err.body}`);
-                reject({ error: err.body });
-            } else {
-                //let json = JSON.parse(body);
-                //console.log(`Got the body from the other server: ${JSON.stringify(body)}`);
-                //console.log(`Response from the other server: ${JSON.stringify(res.body)}`);
-                resolve({ responseData: res.body });
-            }
-        });
-    });
-};
-
-/**
- * HTTP Post with callback
- * @param {Object} options 
- * @param {Function} callback
- */
-const postData = (options = {}, callback = () => {}) => {
-    // make another HTTP request
-    request.post(options, (err, res, body) => {
-        if (err) {
-            console.error(`Error encountered when calling the other server: ${err.body}`);
-            callback(err);
-        } else {
-            //let json = JSON.parse(body);
-            //console.log(`Got the body from the other server: ${JSON.stringify(body)}`);
-            //console.log(`Response from the other server: ${JSON.stringify(res.body)}`);
-            callback(null, res.body);
-        }
-    });
-};
